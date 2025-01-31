@@ -4,7 +4,6 @@
 #include <mutex>
 #include <conditional_variable>
 #include <vector>
-#include "Request_class.cpp"
 
 // initializing global variables
 
