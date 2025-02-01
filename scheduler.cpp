@@ -7,7 +7,7 @@
 class Scheduler {
 public:
     // Add a request from the Floor subsystem
-    void addRequest(const ElevatorRequest& request) {
+    void addRequest(const Request& request) {
         std::unique_lock<std::mutex> lock(mutex_);
         requestQueue_.push(request);
         std::cout << "Scheduler received request: Time " << request.time 
@@ -17,10 +17,10 @@ public:
     }
 
     // Get a request for an Elevator to process
-    ElevatorRequest getRequest() {
+    Request getRequest() {
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [this]() { return !requestQueue_.empty(); }); // Wait for a request
-        ElevatorRequest request = requestQueue_.front();
+        Request request = requestQueue_.front();
         requestQueue_.pop();
         return request;
     }
@@ -33,7 +33,7 @@ public:
     }
 
 private:
-    std::queue<ElevatorRequest> requestQueue_;  // Queue for storing requests
+    std::queue<Request> requestQueue_;  // Queue for storing requests
     std::mutex mutex_;                          // Mutex for thread safety
     std::condition_variable cv_;                // Condition variable for synchronization
 };
