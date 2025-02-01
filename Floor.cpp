@@ -1,68 +1,51 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string>
 #include <queue>
-#include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <vector>
-#include <chrono>
-#include <sstream>
 
-class Request {
-private:
-    int time;
-    int floor;
-    std::string button;
-
-public:
-    Request(int t, int f, std::string b) : time(t), floor(f), button(b) {}
-
-    std::string get_button() { return button; }
-    int get_floor() { return floor; }
-    int get_time() { return time; }
-
-    void set_button(std::string b) { button = b; }
-    void set_floor(int f) { floor = f; }
-    void set_time(int t) { time = t; }
-
-    void Tostring() {
-        std::cout << "Button: " << button << std::endl;
-        std::cout << "Floor: " << floor << std::endl;
-        std::cout << "Time: " << time << std::endl;
+void FloorSubsystem(const std::string& filename) {
+    std::ifstream inputFile(filename);  // Open the file for reading
+    if (!inputFile) {
+        std::cerr << "Failed to open file: " << filename << std::endl;
+        return;
     }
-};
 
-
-std::queue<Request> requestQueue;
-std::mutex queueMutex;
-std::condition_variable cond;
-
-void FloorSubsystem() {
-    std::vector<std::string> inputEvents = {
-        "1 3 UP",  // Example: Request from floor 3 going UP
-        "2 5 DOWN", 
-        "3 2 UP"
-    };
-
-    for (const auto& event : inputEvents) {
-        std::istringstream iss(event);
+    std::string line;
+    while (std::getline(inputFile, line)) {  // Read each line from the file
+        std::istringstream iss(line);  // Use a string stream to parse the line
         int time, floor;
         std::string direction;
         iss >> time >> floor >> direction;
 
+        // Validate the data before using it
+        if (iss.fail()) {
+            std::cerr << "Error reading line: " << line << std::endl;
+            continue;
+        }
+
         // Simulate button press determining the destination floor
         int destination = (direction == "UP") ? floor + 1 : floor - 1;
 
-        // Create request
-        Request req = {floor, destination};
+        // Create the request
+        Request req(time, floor, direction);
 
-        // Add to shared queue
+        // Add the request to the shared request queue
         {
             std::lock_guard<std::mutex> lock(queueMutex);
             requestQueue.push(req);
             std::cout << "[Floor] Request from floor " << floor << " (" << direction << ") added to queue.\n";
         }
-        
-        cond.notify_one(); // Notify Elevator thread
-        std::this_thread::sleep_for(std::chrono::seconds(1)); // Simulate delay in new requests
+
+        // Notify the Elevator thread that a new request is in the queue
+        cond.notify_one();
+
+        // Simulate a small delay between requests (if needed)
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
+
+    inputFile.close();  // Close the file when done
 }
