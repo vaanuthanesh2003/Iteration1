@@ -57,10 +57,6 @@ void Elevator(){
 
 }
 
-std::queue<Request> requestQueue;
-std::mutex queueMutex;
-std::condition_variable cond;
-
 void FloorSubsystem() {
     std::vector<std::string> inputEvents = {
         "1 3 UP",  // Example: Request from floor 3 going UP
