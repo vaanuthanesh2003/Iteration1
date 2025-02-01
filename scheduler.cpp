@@ -3,13 +3,6 @@
 #include <mutex>
 #include <condition_variable>
 
-// Data structure representing an elevator request
-struct ElevatorRequest {
-    int time;      // Time at which the request was made
-    int floor;     // Floor number where the request originated
-    char button;   // 'U' for up, 'D' for down, 'C' for elevator car request
-};
-
 // Scheduler class acting as the communication hub
 class Scheduler {
 public:
