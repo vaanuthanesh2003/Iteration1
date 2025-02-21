@@ -86,3 +86,11 @@ Example:
   * File input processing
   * Full system integration
 - Use Ctrl+C to terminate the running system
+
+## Breakdown of Responsibilities:
+
+- Folahanmi: README.md writing and formatting
+- Hassan: Class Diagram
+- Tobi Ola: Sequence Diagram
+- Vaanathy: Make modifications to code 
+- Vaasu: State Diagram
