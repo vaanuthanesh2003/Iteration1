@@ -40,7 +40,7 @@ sudo cp lib/*.a /usr/lib
 g++ -std=c++11 elevator_system.cpp -o elevator_system -pthread
 
 ### Compile Tests:
-g++ -std=c++14 test.cpp -o test -I/usr/include -L/usr/lib -lgtest -lgtest_main -pthread -no-pie
+g++ -o test_elevator test.cpp elevator_system.cpp -lgtest -lpthread
 
 
 ## 5. Running Tests
