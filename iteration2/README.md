@@ -1,8 +1,8 @@
 
-**Elevator Control System  Iteration 2- README**
+# Elevator Control System  Iteration 2- README
 
 
-##1. Description
+## 1. Description
 
 This project simulates an elevator control system with multithreading the main goal of this project is to add the state machines for the scheduler and elevator subsystems. Key components:
 - Request: Represents a user request (time, floor, direction).
@@ -12,7 +12,7 @@ This project simulates an elevator control system with multithreading the main g
 - Scheduler function: processes requests
 
 
-##2. Dependencies
+## 2. Dependencies
 
 - C++ 
 - Google Test (gtest) for testing
@@ -20,7 +20,7 @@ This project simulates an elevator control system with multithreading the main g
 - pthread (for multithreading)
 
 
-##3. Installation
+## 3. Installation
 
 ### Install GTest & CMake:
 sudo apt update
@@ -34,7 +34,7 @@ sudo make
 sudo cp lib/*.a /usr/lib
 
 
-##4. Building the Project
+## 4. Building the Project
 
 ### Compile Main System:
 g++ -std=c++11 elevator_system.cpp -o elevator_system -pthread
@@ -43,13 +43,13 @@ g++ -std=c++11 elevator_system.cpp -o elevator_system -pthread
 g++ -std=c++14 test.cpp -o test -I/usr/include -L/usr/lib -lgtest -lgtest_main -pthread -no-pie
 
 
-##5. Running Tests
+## 5. Running Tests
 
 Execute the test binary:
 ./test
 
 
-##6. Running the System
+## 6. Running the System
 
 Run the program with an input file:
 ./elevator_system input.txt
@@ -65,7 +65,7 @@ Sample output:
 [Scheduler] Elevator 10 reached floor 3.
 
 
-##7. Input File Format
+## 7. Input File Format
 
 Each line contains:
 <time_in_seconds> <floor_number> <direction>
@@ -75,7 +75,7 @@ Example:
 2 5 DOWN  # At 2 seconds, floor 5 DOWN button pressed
 
 
-##8. Notes
+## 8. Notes
 
 - System uses condition variables for thread synchronization
 - Elevator simulates 3-second movement between floors
