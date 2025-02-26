@@ -1,29 +1,30 @@
 #include "elevator_system.h"
 
-std::queue<Request> requestQueue;
-std::mutex queueMutex;
-std::condition_variable cond;
-ElevatorState elevatorState = ElevatorState::IDLE;
-SchedulerState schedulerState = SchedulerState::WAITING;
-bool running = true;
 
-Elevator::Elevator() : currentFloor(0), state(ElevatorState::IDLE) {}
+std::queue<Request> requestQueue; // stores incoming requests
+std::mutex queueMutex; // to sync access to requestQueue
+std::condition_variable cond; // notifies when requests are available
+ElevatorState elevatorState = ElevatorState::IDLE; // to track current state
+SchedulerState schedulerState = SchedulerState::WAITING; // to track current state
+bool running = true; // executing condition
+
+Elevator::Elevator() : currentFloor(0), state(ElevatorState::IDLE) {} // initializing current floor to 0, state - IDLE
 
 void Elevator::moveToFloor(int floor) {
     std::cout << "[Elevator] Moving from " << currentFloor << " to floor " << floor << "\n";
     state = ElevatorState::MOVING;
-    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::this_thread::sleep_for(std::chrono::seconds(2)); // simulates elevator moving with delay
 
     currentFloor = floor;
-    state = ElevatorState::ARRIVED;
+    state = ElevatorState::ARRIVED; // updating state
     std::cout << "[Elevator] Arrived at floor " << currentFloor << "\n";
 
-    // Simulate door opening
+    // door opening
     std::this_thread::sleep_for(std::chrono::seconds(1));
     std::cout << "[Elevator] Doors opening\n";
     state = ElevatorState::DOORS_OPEN;
 
-    // Simulate door closing
+    // door closing
     std::this_thread::sleep_for(std::chrono::seconds(1));
     std::cout << "[Elevator] Doors closing\n";
     state = ElevatorState::DOORS_CLOSED;
@@ -35,7 +36,7 @@ void Elevator::start(FloorSubsystem& floorSubsystem) {
 
     while (running) {
         std::unique_lock <std::mutex> lock(queueMutex);
-        cond.wait(lock, [] { return !requestQueue.empty(); });
+        cond.wait(lock, [] { return !requestQueue.empty(); }); // wait until requests are available
 
         if (requestQueue.empty()) continue;
 
@@ -74,7 +75,7 @@ int Request::get_floor() const { return floor; }
 int Request::get_time() const { return time; }
 int Request::get_car() const { return car;}
 
-void Scheduler::addRequest(const Request& request) {
+void Scheduler::addRequest(const Request& request) { 
     std::unique_lock<std::mutex> lock(queueMutex);
     requestQueue.push(request);
     cond.notify_one();
@@ -128,9 +129,9 @@ void SchedulerFunction(Scheduler& scheduler, int maxRequests, Elevator& elevator
 }
 
 void AddRequest(int time, int floor, std::string direction, int car){
-    std::lock_guard<std::mutex> lock(queueMutex);
+    std::lock_guard<std::mutex> lock(queueMutex); // obtains lock for requestQueue
     requestQueue.push(Request(time, floor, direction, car));
-    cond.notify_one();
+    cond.notify_one(); // notify a waiting thread that we are done
 }
 
 
@@ -140,7 +141,7 @@ void FloorSubsystem::processRequests(const std::string& filename) {
         std::cerr << "Failed to open file: " << filename << std::endl;
         return;
     }
-
+    // reads requests from file
     std::string line;
     while (std::getline(inputFile, line)) {
         std::istringstream iss(line);
@@ -161,9 +162,9 @@ void FloorSubsystem::processRequests(const std::string& filename) {
 void FloorSubsystem::requestElevator(int time, int floor, std::string direction, int car){
     {
         std::lock_guard<std::mutex> lock(queueMutex);
-
+        // obtains lock for requestQueue
         Request req(time, floor, direction, car);
-        requestQueue.push(req);
+        requestQueue.push(req); // adds a new floor request to the queue
         
         if (direction == "UP"){
             upRequests[floor].push(req);
@@ -177,6 +178,7 @@ void FloorSubsystem::requestElevator(int time, int floor, std::string direction,
 
 Request FloorSubsystem::getNextRequest(int floor, std::string direction){
     std::lock_guard<std::mutex> lock(queueMutex);
+    // obtains lock for requestQueue
     if (direction == "UP" && !upRequests[floor].empty()){
         Request req = upRequests[floor].front();
         upRequests[floor].pop();
@@ -193,6 +195,7 @@ Request FloorSubsystem::getNextRequest(int floor, std::string direction){
 
 bool FloorSubsystem::hasRequests(int floor, std::string direction){
     std::lock_guard<std::mutex> lock(queueMutex);
+    // obtains lock for requestQueue
     return (direction == "UP" && !upRequests[floor].empty()) || (direction == "DOWN" && !downRequests[floor].empty());
 }
 
