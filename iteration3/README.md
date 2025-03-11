@@ -67,16 +67,16 @@ sudo cp lib/*.a /usr/lib
 ## 6. Running the System
 
 Run each thread on a separate terminal in this order:
-./scheduler
-./elevator 1 &
-./elevator 2 &
-./elevator 3 &
-./client
+- ./scheduler
+- ./elevator 1 &
+- ./elevator 2 &
+- ./elevator 3 &
+- ./client
 
 Example input file format (input.txt):
-1 3 UP 2
-2 5 DOWN 4
-3 2 UP 4
+- 1 3 UP 2
+- 2 5 DOWN 4
+- 3 2 UP 4
 
 Sample output (Depending on terminal):
 [Scheduler] Received request: Floor 2 UP to Floor 5
