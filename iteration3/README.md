@@ -79,26 +79,26 @@ Example input file format (input.txt):
 - 3 2 UP 4
 
 Sample output (Depending on terminal):
-[Scheduler] Received request: Floor 2 UP to Floor 5
-[Scheduler] Assigning Elevator 1 to handle request.
-[Scheduler] Elevator 1 moving to Floor 2.
+[Scheduler] Received request: Floor 2 UP to Floor 5\
+[Scheduler] Assigning Elevator 1 to handle request.\
+[Scheduler] Elevator 1 moving to Floor 2.\
 
-[Elevator 1] Received move command to Floor 2.
-[Elevator 1] Doors opening...
-[Elevator 1] Doors closing...
-[Elevator 1] Moving to Floor 5.
+[Elevator 1] Received move command to Floor 2.\
+[Elevator 1] Doors opening...\
+[Elevator 1] Doors closing...\
+[Elevator 1] Moving to Floor 5.\
 
-[Client] Sent request: Floor 2 UP to Floor 5
+[Client] Sent request: Floor 2 UP to Floor 5\
 
 
 ## 7. Input File Format
 
-Each line contains:
+Each line contains:\
 <time_in_seconds> <floor_number> <direction>
 
-Example:
-1 3 UP    # At 1 second, floor 3 UP button pressed
-2 5 DOWN  # At 2 seconds, floor 5 DOWN button pressed
+Example:\
+1 3 UP    # At 1 second, floor 3 UP button pressed\
+2 5 DOWN  # At 2 seconds, floor 5 DOWN button pressed\
 
 
 ## 8. Notes
