@@ -49,12 +49,14 @@ sudo cp lib/*.a /usr/lib
 ## 4. Building the Project
 
 ### Compile Main System:
-g++ client.cpp -o client
-g++ scheduler.cpp -o scheduler -pthread
-g++ elevator.cpp -o elevator
+- g++ client.cpp -o client
+- g++ scheduler.cpp -o scheduler -pthread
+- g++ elevator.cpp -o elevator
 
 ### Compile Tests:
--- -- 
+- g++ scheduler_test.cpp -o scheduler_test -lgtest -lgtest_main -pthread
+- g++ elevator_test.cpp -o elevator_test -lgtest -lgtest_main -pthread
+- g++ client_test.cpp -o client_test -lgtest -lgtest_main -pthread
 
 
 ## 5. Running Tests
