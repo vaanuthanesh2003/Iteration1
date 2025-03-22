@@ -59,6 +59,8 @@ public:
         std::thread(&Scheduler::processRequests, this).join();
     }
 
+~Scheduler() { close(sockfd); }
+
 private:
     void receiveMessages() {
         char buffer[BUFFER_SIZE];
@@ -162,7 +164,7 @@ private:
         }
     }
 
-    ~Scheduler() { close(sockfd); }
+    
 };
 
 int main() {
