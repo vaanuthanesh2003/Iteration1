@@ -35,16 +35,17 @@ This project iteration consists of three cpp files, two header files, and one in
 ## 3. Installation
 
 ### Install GTest & CMake:
-sudo apt update
-sudo apt install cmake
+- sudo apt update
+- sudo apt install cmake
 
-sudo apt update
-sudo apt install libgtest-dev cmake g++ make
-cd /usr/src/gtest
-sudo cmake CMakeLists.txt
-sudo make
-sudo cp lib/*.a /usr/lib
+- sudo apt update
+- sudo apt install libgtest-dev cmake g++ make
 
+- cd /usr/src/gtest
+- sudo cmake CMakeLists.txt
+- sudo make
+- sudo cp lib/*.a /usr/lib
+- After this, return to the direcotry of the project and run the rest of the commands
 
 ## 4. Building the Project
 
