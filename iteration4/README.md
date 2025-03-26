@@ -54,15 +54,11 @@ sudo cp lib/*.a /usr/lib
 - g++ elevator.cpp -o elevator
 
 ### Compile Tests:
-- g++ scheduler_test.cpp -o scheduler_test -lgtest -lgtest_main -pthread
-- g++ elevator_test.cpp -o elevator_test -lgtest -lgtest_main -pthread
-- g++ client_test.cpp -o client_test -lgtest -lgtest_main -pthread
-
+- g++ -std=c++17 -DTEST_BUILD -o test test_system.cpp client.cpp -lgtest -lpthread
 
 ## 5. Running Tests
 
--- -- 
-
+- ./test
 
 ## 6. Running the System
 
@@ -118,7 +114,7 @@ Example:\
 - Folahanmi: Class Diagram, Sequence Diagram
 - Hassan: Code for scheduler.cpp
 - Tobi Ola: Unit Testing, Timing diagram
-- Vaanathy: Code for scheduler.cpp
+- Vaanathy: Code for scheduler.cpp, Unit Testing
 - Vaasu: Code for elevator.cpp
 
 
