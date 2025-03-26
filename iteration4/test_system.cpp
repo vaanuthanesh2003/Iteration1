@@ -1,4 +1,4 @@
-#define TEST_BUILD
+// #define TEST_BUILD // Already been mentioned in the compile statements and thus causing errors
 #include <gtest/gtest.h>
 #include <iostream>
 #include <fstream>
