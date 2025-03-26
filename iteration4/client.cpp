@@ -61,9 +61,11 @@ Client::~Client() {
     close(sockfd);
 }
 
+#ifndef TEST_BUILD // Adding this so that we don't get multiple definitions of main error
 int main() {
     Client client;
     client.processRequestsFromFile("input.txt");  
     return 0;
 }
+#endif
 
