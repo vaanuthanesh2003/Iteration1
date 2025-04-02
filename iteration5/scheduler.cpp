@@ -1,4 +1,5 @@
 // scheduler.cpp - Iteration 5 Final with Console UI and Configuration
+
 #include <iostream>
 #include <unordered_map>
 #include <queue>
@@ -15,34 +16,41 @@
 #include <iomanip>
 #include <vector>
 
-#define BUFFER_SIZE 1024
-#define BASE_PORT 5100
-#define SCHEDULER_PORT 5002
-#define MAX_CAPACITY 4
+#define BUFFER_SIZE 1024   // Maximum size for incoming messages
+#define BASE_PORT 5100     // Base port for elevator communication
+#define SCHEDULER_PORT 5002 // Port where scheduler listens for requests
+#define MAX_CAPACITY 4     // Maximum load an elevator can carry
 
+// Structure to represent a ride request
 struct Request {
-    int floor;
-    int targetFloor;
-    std::string direction;
+    int floor;        // Floor where request originated
+    int targetFloor;  // Destination floor
+    std::string direction; // Direction of request ("UP" or "DOWN")
     Request(int f, int t, const std::string& d) : floor(f), targetFloor(t), direction(d) {}
 };
 
 class Scheduler {
 private:
-    int sockfd;
-    struct sockaddr_in selfAddr;
-    std::unordered_map<int, int> elevatorFloors;
-    std::unordered_map<int, int> elevatorLoad;
-    std::unordered_map<int, std::string> elevatorStatus;
-    std::queue<Request> requestQueue;
-    std::mutex queueMutex;
-    std::condition_variable cv;
-    std::unordered_map<int, std::chrono::steady_clock::time_point> warningTimestamps;
-    int moveCount = 0;
-    int elevatorCount;
-    int floorCount;
+    int sockfd; // Socket descriptor for UDP communication
+    struct sockaddr_in selfAddr; // Address structure for scheduler
+
+    // Maps to track elevator state
+    std::unordered_map<int, int> elevatorFloors; // Current floor of each elevator
+    std::unordered_map<int, int> elevatorLoad;   // Current load (number of passengers)
+    std::unordered_map<int, std::string> elevatorStatus; // Status (OK, FAULT, WARNING)
+    
+    std::queue<Request> requestQueue; // Queue of pending ride requests
+    std::mutex queueMutex; // Mutex for thread safety
+    std::condition_variable cv; // Condition variable to signal request processing
+    
+    std::unordered_map<int, std::chrono::steady_clock::time_point> warningTimestamps; // Tracks when warnings were issued
+    
+    int moveCount = 0; // Tracks the number of elevator moves made
+    int elevatorCount; // Total number of elevators
+    int floorCount; // Total number of floors
 
 public:
+    // Constructor initializes elevators and binds scheduler to a port
     Scheduler(int elevCount, int floorMax) : elevatorCount(elevCount), floorCount(floorMax) {
         sockfd = socket(AF_INET, SOCK_DGRAM, 0);
         if (sockfd < 0) {
@@ -56,17 +64,19 @@ public:
             exit(EXIT_FAILURE);
         }
 
+        // Initialize elevator status and positions
         for (int i = 1; i <= elevatorCount; ++i) {
-            elevatorFloors[i] = 0;
-            elevatorLoad[i] = 0;
-            elevatorStatus[i] = "OK";
+            elevatorFloors[i] = 0; // All elevators start at floor 0
+            elevatorLoad[i] = 0; // No passengers at start
+            elevatorStatus[i] = "OK"; // All elevators are operational
         }
 
         std::cout << "[Scheduler] Listening on port " << SCHEDULER_PORT << std::endl;
     }
 
-    ~Scheduler() { close(sockfd); }
+    ~Scheduler() { close(sockfd); } // Destructor closes socket
 
+    // Starts the scheduler by launching message handling and request processing threads
     void start() {
         std::thread(&Scheduler::receiveMessages, this).detach();
         std::thread(&Scheduler::processRequests, this).detach();
@@ -74,6 +84,7 @@ public:
     }
 
 private:
+    // Handles incoming messages from elevators and clients
     void receiveMessages() {
         char buffer[BUFFER_SIZE];
         struct sockaddr_in senderAddr;
@@ -88,7 +99,7 @@ private:
             std::string type;
             ss >> type;
 
-            if (type == "STATUS") {
+            if (type == "STATUS") { // Elevator status update
                 int id, floor;
                 ss >> id >> floor;
                 elevatorFloors[id] = floor;
@@ -96,25 +107,25 @@ private:
 
                 auto now = std::chrono::steady_clock::now();
                 if (warningTimestamps.count(id) == 0 || 
-            std::chrono::duration_cast<std::chrono::seconds>(now - warningTimestamps[id]).count() > 5) {
-                elevatorStatus[id] = "OK";
-
-            }
-            } else if (type == "FAULT") {
+                    std::chrono::duration_cast<std::chrono::seconds>(now - warningTimestamps[id]).count() > 5) {
+                    elevatorStatus[id] = "OK";
+                }
+            } else if (type == "FAULT") { // Elevator failure reported
                 int id;
                 ss >> id;
                 elevatorStatus[id] = "FAULT";
-            } else if (type == "WARNING") {
+            } else if (type == "WARNING") { // Elevator warning message
                 int id; std::string warning;
                 ss >> id >> warning;
                 elevatorStatus[id] = "WARNING(" + warning + ")";
                 warningTimestamps[id] = std::chrono::steady_clock::now();
-            } else {
+            } else { // Request from a client (ride request)
                 handleClientRequest(ss, type);
             }
         }
     }
 
+    // Handles ride requests from clients
     void handleClientRequest(std::stringstream& ss, const std::string& firstToken) {
         int floor = std::stoi(firstToken);
         std::string direction;
@@ -126,6 +137,7 @@ private:
         cv.notify_one();
     }
 
+    // Processes ride requests by assigning elevators
     void processRequests() {
         while (true) {
             std::unique_lock<std::mutex> lock(queueMutex);
@@ -149,6 +161,7 @@ private:
         }
     }
 
+    // Finds the most suitable elevator for a request
     int findBestElevator(const Request& req) {
         int best = -1, minDist = INT_MAX;
         for (int i = 1; i <= elevatorCount; ++i) {
@@ -162,29 +175,15 @@ private:
         return best;
     }
 
+    // Sends movement command to the selected elevator
     void sendMoveCommand(int elevatorID, int targetFloor) {
         struct sockaddr_in destAddr;
         destAddr.sin_family = AF_INET;
         destAddr.sin_port = htons(BASE_PORT + elevatorID);
         destAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-
+        
         std::string cmd = "MOVE " + std::to_string(elevatorID) + " " + std::to_string(targetFloor);
         sendto(sockfd, cmd.c_str(), cmd.length(), 0, (struct sockaddr*)&destAddr, sizeof(destAddr));
-    }
-
-    void displayStatusLoop() {
-        while (true) {
-            std::this_thread::sleep_for(std::chrono::seconds(2));
-            std::cout << "\n---------------------------------------------\n";
-            std::cout << "| Elevator | Floor | Load | Status          |\n";
-            std::cout << "---------------------------------------------\n";
-            for (int i = 1; i <= elevatorCount; ++i) {
-                std::cout << "|    " << std::setw(3) << i << "   |   " << std::setw(3) << elevatorFloors[i]
-                          << "  |  " << std::setw(2) << elevatorLoad[i] << "  | "
-                          << std::setw(35) << elevatorStatus[i] << " |\n";
-            }
-            std::cout << "---------------------------------------------\n";
-        }
     }
 };
 
