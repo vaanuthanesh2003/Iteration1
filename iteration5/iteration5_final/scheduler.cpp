@@ -14,6 +14,7 @@
 #include <chrono>
 #include <iomanip>
 #include <vector>
+#include <scheduler.h>
 
 #define BUFFER_SIZE 1024
 #define BASE_PORT 5100
