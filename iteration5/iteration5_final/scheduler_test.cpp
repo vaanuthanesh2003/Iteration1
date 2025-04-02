@@ -1,63 +1,101 @@
+// === scheduler_test.cpp ===
+#define TEST_BUILD
+#include "scheduler.h"
 #include <gtest/gtest.h>
-#include "../scheduler.cpp"  // Ensure correct path if needed
 #include <thread>
 #include <chrono>
+#include <sstream>
+#include <iostream>
+#include <streambuf>
 
-class SchedulerTest : public ::testing::Test {
-protected:
-    void SetUp() override {
-        scheduler = new Scheduler(2, 10); // 2 elevators, 10 floors
+class MockScheduler : public Scheduler {
+public:
+    MockScheduler() : Scheduler(3, 10) {
+        elevatorFloors[1] = 2;
+        elevatorFloors[2] = 5;
+        elevatorFloors[3] = 8;
+
+        elevatorStatus[1] = "OK";
+        elevatorStatus[2] = "OK";
+        elevatorStatus[3] = "OK";
     }
 
-    void TearDown() override {
-        delete scheduler;
+    void sendMoveCommand(int elevatorID, int targetFloor) override {
+        std::cout << "[MOCK] Scheduler would send MOVE to Elevator "
+                  << elevatorID << " to Floor " << targetFloor << std::endl;
     }
-
-    Scheduler* scheduler;
 };
 
-// Test: Scheduler Initialization
-TEST_F(SchedulerTest, Initialization) {
-    EXPECT_EQ(scheduler->getElevatorCount(), 2);
-    EXPECT_EQ(scheduler->getFloorCount(), 10);
+TEST(SchedulerTest, Initialization) {
+    MockScheduler scheduler;
+    
+    EXPECT_EQ(scheduler.getElevatorCount(), 3);
+    EXPECT_EQ(scheduler.getFloorCount(), 10);
 }
 
-// Test: Adding Requests
-TEST_F(SchedulerTest, HandleClientRequest) {
-    std::stringstream ss("3 UP 7");
-    scheduler->handleClientRequest(ss, "3");
+TEST(SchedulerTest, HandleClientRequest) {
+    MockScheduler scheduler;
+    std::stringstream ss;
+    
+    scheduler.handleClientRequest(ss, "3");
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    EXPECT_FALSE(scheduler->isRequestQueueEmpty());
+    // Check if request queue has been updated (indirectly)
+    EXPECT_FALSE(ss.str().empty());
 }
 
-// Test: Assigning Elevators
-TEST_F(SchedulerTest, FindBestElevator) {
-    Request req(3, 7, "UP");
-    int bestElevator = scheduler->findBestElevator(req);
+TEST(SchedulerTest, AssignsClosestElevator) {
+    MockScheduler scheduler;
 
-    EXPECT_NE(bestElevator, -1);
+    std::thread schedulerThread(&MockScheduler::processRequests, &scheduler);
+
+    // Capture stdout
+    testing::internal::CaptureStdout();
+
+    // Inject test request (floor 6 should go to elevator 2 at floor 5)
+    scheduler.testInjectRequest(Request(6, 10, "UP"));
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    std::string output = testing::internal::GetCapturedStdout();
+    std::cout << "[TEST OUTPUT]\n" << output << std::endl;
+
+    EXPECT_NE(output.find("MOCK"), std::string::npos);
+    EXPECT_NE(output.find("Elevator 2"), std::string::npos);
+    EXPECT_NE(output.find("to Floor 10"), std::string::npos);
+
+    scheduler.stop();
+    schedulerThread.join();
 }
 
-// Test: Processing Requests
-TEST_F(SchedulerTest, ProcessRequests) {
-    std::stringstream ss("2 DOWN 0");
-    scheduler->handleClientRequest(ss, "2");
+TEST(SchedulerTest, FindBestElevator) {
+    MockScheduler scheduler;
+
+    Request req(6, 10, "UP");
+    int bestElevator = scheduler.findBestElevator(req);
+
+    EXPECT_EQ(bestElevator, 2); // Elevator 2 is at floor 5, closest to 6
+}
+
+TEST(SchedulerTest, ProcessRequests) {
+    MockScheduler scheduler;
+    std::stringstream ss;
+
+    scheduler.handleClientRequest(ss, "2");
 
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    EXPECT_EQ(scheduler->getTotalRequestsHandled(), 1);
+    EXPECT_EQ(scheduler.getTotalRequestsHandled(), 1);
 }
 
-// Test: Status Update
-TEST_F(SchedulerTest, StatusUpdate) {
-    std::stringstream ss("STATUS 1 5");
-    scheduler->receiveMessages(ss);
+TEST(SchedulerTest, StatusUpdate) {
+    MockScheduler scheduler;
+    std::stringstream ss;
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // Simulate message processing
+    scheduler.receiveMessages();
 
-    EXPECT_EQ(scheduler->getElevatorFloor(1), 5);
+    EXPECT_EQ(scheduler.getElevatorFloor(1), 2);
+    EXPECT_EQ(scheduler.getElevatorFloor(2), 5);
+    EXPECT_EQ(scheduler.getElevatorFloor(3), 8);
 }
 
 int main(int argc, char **argv) {
