@@ -40,13 +40,13 @@ sudo cp lib/*.a /usr/lib
 g++ -std=c++11 elevator_system.cpp -o elevator_system -pthread
 
 ### Compile Tests:
-g++ -o test_elevator test.cpp elevator_system.cpp -lgtest -lpthread
+g++ elevator_system.cpp test.cpp -o test_exec -lgtest -lgtest_main -pthread -DTESTING
 
 
 ## 5. Running Tests
 
 Execute the test binary:
-./test
+./test_exec
 
 
 ## 6. Running the System
