@@ -1,4 +1,4 @@
 Vaasu - Scheduler class, Tests
-Vaanathy - Elevator class, Tests
+Vaanathy - Elevator class, Tests, UML diagrams
 Hassan - Floor Subsystem class, Tests
 Adeyehun - Request Class, Tests
