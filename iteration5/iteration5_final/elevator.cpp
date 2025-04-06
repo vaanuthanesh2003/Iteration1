@@ -1,4 +1,3 @@
-
 #include "elevator.h"
 #include <cstring>
 #include <arpa/inet.h>
@@ -7,29 +6,28 @@
 #include <iostream>
 #include <ctime>
 
-// Constructor: Initializes the elevator with a given ID
+#define BASE_PORT 5100
+#define MOVE_TIMEOUT 10  // Timeout in seconds for floor movement
+#define DOOR_RETRY_LIMIT 3  // Number of retries for stuck door
+
 Elevator::Elevator(int elevatorID) : id(elevatorID), currentFloor(0), stuck(false), doorStuck(false) {
-    // Create a UDP socket
     sockfd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sockfd < 0) {
         perror("[Elevator] Socket creation failed");
         exit(EXIT_FAILURE);
     }
 
-    // Set up the address for this elevator to bind to (using its unique ID)
     struct sockaddr_in selfAddr;
     memset(&selfAddr, 0, sizeof(selfAddr));
     selfAddr.sin_family = AF_INET;
-    selfAddr.sin_addr.s_addr = INADDR_ANY; // Listen on any available IP address
-    selfAddr.sin_port = htons(BASE_PORT + id); // Use a unique port for each elevator
+    selfAddr.sin_addr.s_addr = INADDR_ANY;
+    selfAddr.sin_port = htons(BASE_PORT + id);
 
-    // Bind the socket to the address
     if (bind(sockfd, (struct sockaddr*)&selfAddr, sizeof(selfAddr)) < 0) {
         perror("[Elevator] Bind failed");
         exit(EXIT_FAILURE);
     }
 
-    // Set up the address for the scheduler
     memset(&schedulerAddr, 0, sizeof(schedulerAddr));
     schedulerAddr.sin_family = AF_INET;
     schedulerAddr.sin_port = htons(SCHEDULER_PORT);
@@ -38,118 +36,107 @@ Elevator::Elevator(int elevatorID) : id(elevatorID), currentFloor(0), stuck(fals
     std::cout << "[Elevator " << id << "] Listening on port " << (BASE_PORT + id) << std::endl;
 }
 
-// Receive commands from the scheduler (e.g., move commands)
 void Elevator::receiveCommand() {
     char buffer[BUFFER_SIZE];
     struct sockaddr_in sender;
     socklen_t len = sizeof(sender);
 
-    // Receive data from the socket
     int n = recvfrom(sockfd, buffer, BUFFER_SIZE - 1, 0, (struct sockaddr*)&sender, &len);
-    if (n <= 0) return; // Return if no data or error
-    buffer[n] = '\0'; // Null-terminate the received string
+    if (n <= 0) return;
+    buffer[n] = '\0';
 
     int eid, targetFloor;
-    // Parse the received message (e.g., "MOVE <elevatorID> <targetFloor>")
     if (sscanf(buffer, "MOVE %d %d", &eid, &targetFloor) == 2 && eid == id) {
         std::cout << "[Elevator " << id << "] Received move command to Floor " << targetFloor << std::endl;
-        moveTo(targetFloor); // Call move function if the command is for this elevator
+        moveTo(targetFloor);
     }
 }
 
-// Simulate moving the elevator to a target floor
 void Elevator::moveTo(int floor) {
     std::cout << "[Elevator " << id << "] Doors closing..." << std::endl;
-    sleep(1); // Simulate door closing delay
-
-    time_t startTime = time(nullptr); // Record the start time for fault detection
-
-    // Simulate fault conditions
-    if (floor == 99) {
-        std::cerr << "[Elevator " << id << "] Simulated HARD FAULT triggered. " << std::endl;
-        reportHardFault(); // Trigger hard fault if the floor is 99
-        return;
+    
+    int retryCount = 0;
+    while (retryCount < DOOR_RETRY_LIMIT) {
+        sleep(1);
+        if (rand() % 10 < 8) {  // Simulating an 80% chance of successful door closure
+            break;
+        }
+        std::cerr << "[Elevator " << id << "] Warning: Door failed to close, retrying..." << std::endl;
+        retryCount++;
     }
 
-    if (floor == 77) {
-        std::cerr << "[Elevator " << id << "] Simulated WARNING Door Stuck. " << std::endl;
-        sendFaultMessage("WARNING " + std::to_string(id) + " door stuck"); // Send a warning message
-        return;
+    if (retryCount == DOOR_RETRY_LIMIT) {
+        std::cerr << "[Elevator " << id << "] Warning: Door was stuck but finally closed." << std::endl;
+        sendFaultMessage("WARNING " + std::to_string(id) + " DOOR_STUCK");
     }
 
-    // Move up or down to the target floor
+    auto startTime = time(nullptr);
     if (floor > currentFloor) {
-        for (int f = currentFloor + 1; f <= floor; ++f) {
+        for (int f = currentFloor + 1; f <= floor; f++) {
             std::cout << "[Elevator " << id << "] Moving up... Floor " << f << std::endl;
-            sleep(1); // Simulate moving up with a delay
-            if (time(nullptr) - startTime > 10) { // Timeout after 10 seconds to simulate a fault
+            sleep(1);
+            if (time(nullptr) - startTime > MOVE_TIMEOUT) {
                 reportHardFault();
                 return;
             }
         }
-    } else {
-        for (int f = currentFloor - 1; f >= floor; --f) {
+    } else if (floor < currentFloor) {
+        for (int f = currentFloor - 1; f >= floor; f--) {
             std::cout << "[Elevator " << id << "] Moving down... Floor " << f << std::endl;
-            sleep(1); // Simulate moving down with a delay
-            if (time(nullptr) - startTime > 10) { // Timeout after 10 seconds to simulate a fault
+            sleep(1);
+            if (time(nullptr) - startTime > MOVE_TIMEOUT) {
                 reportHardFault();
                 return;
             }
         }
     }
 
-    // Update the current floor and print the result
     currentFloor = floor;
+    std::cout << "[Elevator " << id << "] Doors opening..." << std::endl;
+    sleep(1);
     std::cout << "[Elevator " << id << "] Arrived at Floor " << currentFloor << std::endl;
-    sleep(1); // Simulate the elevator stopping at the target floor
 }
 
-// Send the elevator's current status to the scheduler
+
 void Elevator::sendStatus() {
     std::string msg = "STATUS " + std::to_string(id) + " " + std::to_string(currentFloor);
     sendto(sockfd, msg.c_str(), msg.size(), 0, (struct sockaddr*)&schedulerAddr, sizeof(schedulerAddr));
 }
 
-// Return the current floor of the elevator
 int Elevator::getCurrentFloor() const {
     return currentFloor;
 }
 
-// Return the elevator's ID
 int Elevator::getID() const {
     return id;
 }
 
-// Send a fault message to the scheduler
 void Elevator::sendFaultMessage(const std::string& msg) {
     sendto(sockfd, msg.c_str(), msg.size(), 0, (struct sockaddr*)&schedulerAddr, sizeof(schedulerAddr));
 }
 
-// Handle a hard fault scenario (e.g., movement timeout)
 void Elevator::reportHardFault() {
     std::cerr << "[Elevator " << id << "] HARD FAULT: Movement timeout. Shutting down." << std::endl;
-    sendFaultMessage("FAULT " + std::to_string(id)); // Send fault message to scheduler
-    exit(EXIT_FAILURE); // Exit the program on hard fault
+    sendFaultMessage("FAULT " + std::to_string(id));
+    exit(EXIT_FAILURE);
 }
 
-// Destructor: Close the socket when the elevator object is destroyed
 Elevator::~Elevator() {
     close(sockfd);
 }
 
 #ifndef TEST_BUILD
-// Main function: Create an elevator object and continuously receive commands
 int main(int argc, char* argv[]) {
     if (argc != 2) {
         std::cerr << "Usage: ./elevator <id>" << std::endl;
-        return 1; // Exit if the elevator ID is not provided
+        return 1;
     }
 
-    Elevator elevator(std::atoi(argv[1])); // Create an elevator with the given ID
+    Elevator elevator(std::atoi(argv[1]));
     while (true) {
-        elevator.receiveCommand(); // Receive and process commands from the scheduler
-        elevator.sendStatus(); // Send the elevator's status to the scheduler
-        sleep(2); // Wait for a short time before receiving the next command
+        elevator.receiveCommand();
+        elevator.sendStatus();
+        sleep(2);
     }
     return 0;
 }
