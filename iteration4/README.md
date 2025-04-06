@@ -55,11 +55,15 @@ This project iteration consists of three cpp files, two header files, and one in
 - g++ elevator.cpp -o elevator
 
 ### Compile Tests:
-- g++ -std=c++17 -DTEST_BUILD -o test test_system.cpp client.cpp -lgtest -lpthread
+- g++ -std=c++17 -DTEST_BUILD -o scheduler_test scheduler_test.cpp scheduler.cpp -lgtest -lpthread
+- g++ -std=c++17 -DTEST_BUILD -o client_test client_test.cpp client.cpp -lgtest -lpthread
+- g++ -std=c++17 -DTEST_BUILD -o elevator_test elevator_test.cpp elevator.cpp -lgtest -lpthread
 
 ## 5. Running Tests
 
-- ./test
+- ./scheduler_test
+- ./client_test
+- ./elevator_test
 
 ## 6. Running the System
 
